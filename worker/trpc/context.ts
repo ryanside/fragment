@@ -1,3 +1,5 @@
+import { drizzle } from "drizzle-orm/neon-http";
+
 export async function createContext({
   req,
   env,
@@ -7,10 +9,14 @@ export async function createContext({
   env: Env;
   workerCtx: ExecutionContext;
 }) {
+  // Create db instance using env variable
+  const db = drizzle(env.DATABASE_URL);
+
   return {
     req,
     env,
     workerCtx,
+    db, // Add db to context
   };
 }
 
