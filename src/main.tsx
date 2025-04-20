@@ -2,7 +2,8 @@ import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { createRouter } from "./router";
-import "./index.css";
+import "./globals.css";
+import { ThemeProvider } from "./components/theme-provider";
 
 const router = createRouter();
 
@@ -18,7 +19,9 @@ if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <StrictMode>
-      <RouterProvider router={router} />
+      <ThemeProvider>
+        <RouterProvider router={router} />
+      </ThemeProvider>
     </StrictMode>
   );
 }
