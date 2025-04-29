@@ -14,7 +14,6 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as mainRouteImport } from './routes/(main)/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as mainDashboardImport } from './routes/(main)/dashboard'
-import { Route as authLoginImport } from './routes/(auth)/login'
 import { Route as mainStarredIndexImport } from './routes/(main)/starred/index'
 import { Route as mainSnippetsIndexImport } from './routes/(main)/snippets/index'
 import { Route as mainSearchIndexImport } from './routes/(main)/search/index'
@@ -39,12 +38,6 @@ const mainDashboardRoute = mainDashboardImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => mainRouteRoute,
-} as any)
-
-const authLoginRoute = authLoginImport.update({
-  id: '/(auth)/login',
-  path: '/login',
-  getParentRoute: () => rootRoute,
 } as any)
 
 const mainStarredIndexRoute = mainStarredIndexImport.update({
@@ -99,13 +92,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof mainRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/(auth)/login': {
-      id: '/(auth)/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof authLoginImport
       parentRoute: typeof rootRoute
     }
     '/(main)/dashboard': {
@@ -188,7 +174,6 @@ const mainRouteRouteWithChildren = mainRouteRoute._addFileChildren(
 
 export interface FileRoutesByFullPath {
   '/': typeof mainRouteRouteWithChildren
-  '/login': typeof authLoginRoute
   '/dashboard': typeof mainDashboardRoute
   '/folders/$folderId': typeof mainFoldersFolderIdRoute
   '/snippets/$snippetId': typeof mainSnippetsSnippetIdRoute
@@ -200,7 +185,6 @@ export interface FileRoutesByFullPath {
 
 export interface FileRoutesByTo {
   '/': typeof mainRouteRouteWithChildren
-  '/login': typeof authLoginRoute
   '/dashboard': typeof mainDashboardRoute
   '/folders/$folderId': typeof mainFoldersFolderIdRoute
   '/snippets/$snippetId': typeof mainSnippetsSnippetIdRoute
@@ -214,7 +198,6 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/(main)': typeof mainRouteRouteWithChildren
-  '/(auth)/login': typeof authLoginRoute
   '/(main)/dashboard': typeof mainDashboardRoute
   '/(main)/folders/$folderId': typeof mainFoldersFolderIdRoute
   '/(main)/snippets/$snippetId': typeof mainSnippetsSnippetIdRoute
@@ -228,7 +211,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/login'
     | '/dashboard'
     | '/folders/$folderId'
     | '/snippets/$snippetId'
@@ -239,7 +221,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/login'
     | '/dashboard'
     | '/folders/$folderId'
     | '/snippets/$snippetId'
@@ -251,7 +232,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/(main)'
-    | '/(auth)/login'
     | '/(main)/dashboard'
     | '/(main)/folders/$folderId'
     | '/(main)/snippets/$snippetId'
@@ -265,13 +245,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   mainRouteRoute: typeof mainRouteRouteWithChildren
-  authLoginRoute: typeof authLoginRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   mainRouteRoute: mainRouteRouteWithChildren,
-  authLoginRoute: authLoginRoute,
 }
 
 export const routeTree = rootRoute
@@ -285,8 +263,7 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/(main)",
-        "/(auth)/login"
+        "/(main)"
       ]
     },
     "/": {
@@ -303,9 +280,6 @@ export const routeTree = rootRoute
         "/(main)/snippets/",
         "/(main)/starred/"
       ]
-    },
-    "/(auth)/login": {
-      "filePath": "(auth)/login.tsx"
     },
     "/(main)/dashboard": {
       "filePath": "(main)/dashboard.tsx",
