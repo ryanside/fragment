@@ -1,8 +1,9 @@
 import { router } from "./trpc";
-import { productsRouter } from "./routes/products";
-
+import { snippetsRouter } from "./routes/snippets";
+import { foldersRouter } from "./routes/folders";
 export const appRouter = router({
-  products: productsRouter,
+  snippets: snippetsRouter,
+  folders: foldersRouter,
 });
 
 export type AppRouter = typeof appRouter;

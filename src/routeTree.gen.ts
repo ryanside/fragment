@@ -11,14 +11,19 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as AboutImport } from './routes/about'
+import { Route as mainRouteImport } from './routes/(main)/route'
 import { Route as IndexImport } from './routes/index'
+import { Route as mainDashboardImport } from './routes/(main)/dashboard'
+import { Route as mainStarredIndexImport } from './routes/(main)/starred/index'
+import { Route as mainSnippetsIndexImport } from './routes/(main)/snippets/index'
+import { Route as mainFoldersIndexImport } from './routes/(main)/folders/index'
+import { Route as mainSnippetsSnippetIdImport } from './routes/(main)/snippets/$snippetId'
+import { Route as mainFoldersFolderIdImport } from './routes/(main)/folders/$folderId'
 
 // Create/Update Routes
 
-const AboutRoute = AboutImport.update({
-  id: '/about',
-  path: '/about',
+const mainRouteRoute = mainRouteImport.update({
+  id: '/(main)',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -26,6 +31,42 @@ const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRoute,
+} as any)
+
+const mainDashboardRoute = mainDashboardImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => mainRouteRoute,
+} as any)
+
+const mainStarredIndexRoute = mainStarredIndexImport.update({
+  id: '/starred/',
+  path: '/starred/',
+  getParentRoute: () => mainRouteRoute,
+} as any)
+
+const mainSnippetsIndexRoute = mainSnippetsIndexImport.update({
+  id: '/snippets/',
+  path: '/snippets/',
+  getParentRoute: () => mainRouteRoute,
+} as any)
+
+const mainFoldersIndexRoute = mainFoldersIndexImport.update({
+  id: '/folders/',
+  path: '/folders/',
+  getParentRoute: () => mainRouteRoute,
+} as any)
+
+const mainSnippetsSnippetIdRoute = mainSnippetsSnippetIdImport.update({
+  id: '/snippets/$snippetId',
+  path: '/snippets/$snippetId',
+  getParentRoute: () => mainRouteRoute,
+} as any)
+
+const mainFoldersFolderIdRoute = mainFoldersFolderIdImport.update({
+  id: '/folders/$folderId',
+  path: '/folders/$folderId',
+  getParentRoute: () => mainRouteRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
@@ -39,51 +80,154 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutImport
+    '/(main)': {
+      id: '/(main)'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof mainRouteImport
       parentRoute: typeof rootRoute
+    }
+    '/(main)/dashboard': {
+      id: '/(main)/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof mainDashboardImport
+      parentRoute: typeof mainRouteImport
+    }
+    '/(main)/folders/$folderId': {
+      id: '/(main)/folders/$folderId'
+      path: '/folders/$folderId'
+      fullPath: '/folders/$folderId'
+      preLoaderRoute: typeof mainFoldersFolderIdImport
+      parentRoute: typeof mainRouteImport
+    }
+    '/(main)/snippets/$snippetId': {
+      id: '/(main)/snippets/$snippetId'
+      path: '/snippets/$snippetId'
+      fullPath: '/snippets/$snippetId'
+      preLoaderRoute: typeof mainSnippetsSnippetIdImport
+      parentRoute: typeof mainRouteImport
+    }
+    '/(main)/folders/': {
+      id: '/(main)/folders/'
+      path: '/folders'
+      fullPath: '/folders'
+      preLoaderRoute: typeof mainFoldersIndexImport
+      parentRoute: typeof mainRouteImport
+    }
+    '/(main)/snippets/': {
+      id: '/(main)/snippets/'
+      path: '/snippets'
+      fullPath: '/snippets'
+      preLoaderRoute: typeof mainSnippetsIndexImport
+      parentRoute: typeof mainRouteImport
+    }
+    '/(main)/starred/': {
+      id: '/(main)/starred/'
+      path: '/starred'
+      fullPath: '/starred'
+      preLoaderRoute: typeof mainStarredIndexImport
+      parentRoute: typeof mainRouteImport
     }
   }
 }
 
 // Create and export the route tree
 
+interface mainRouteRouteChildren {
+  mainDashboardRoute: typeof mainDashboardRoute
+  mainFoldersFolderIdRoute: typeof mainFoldersFolderIdRoute
+  mainSnippetsSnippetIdRoute: typeof mainSnippetsSnippetIdRoute
+  mainFoldersIndexRoute: typeof mainFoldersIndexRoute
+  mainSnippetsIndexRoute: typeof mainSnippetsIndexRoute
+  mainStarredIndexRoute: typeof mainStarredIndexRoute
+}
+
+const mainRouteRouteChildren: mainRouteRouteChildren = {
+  mainDashboardRoute: mainDashboardRoute,
+  mainFoldersFolderIdRoute: mainFoldersFolderIdRoute,
+  mainSnippetsSnippetIdRoute: mainSnippetsSnippetIdRoute,
+  mainFoldersIndexRoute: mainFoldersIndexRoute,
+  mainSnippetsIndexRoute: mainSnippetsIndexRoute,
+  mainStarredIndexRoute: mainStarredIndexRoute,
+}
+
+const mainRouteRouteWithChildren = mainRouteRoute._addFileChildren(
+  mainRouteRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/': typeof mainRouteRouteWithChildren
+  '/dashboard': typeof mainDashboardRoute
+  '/folders/$folderId': typeof mainFoldersFolderIdRoute
+  '/snippets/$snippetId': typeof mainSnippetsSnippetIdRoute
+  '/folders': typeof mainFoldersIndexRoute
+  '/snippets': typeof mainSnippetsIndexRoute
+  '/starred': typeof mainStarredIndexRoute
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/': typeof mainRouteRouteWithChildren
+  '/dashboard': typeof mainDashboardRoute
+  '/folders/$folderId': typeof mainFoldersFolderIdRoute
+  '/snippets/$snippetId': typeof mainSnippetsSnippetIdRoute
+  '/folders': typeof mainFoldersIndexRoute
+  '/snippets': typeof mainSnippetsIndexRoute
+  '/starred': typeof mainStarredIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/(main)': typeof mainRouteRouteWithChildren
+  '/(main)/dashboard': typeof mainDashboardRoute
+  '/(main)/folders/$folderId': typeof mainFoldersFolderIdRoute
+  '/(main)/snippets/$snippetId': typeof mainSnippetsSnippetIdRoute
+  '/(main)/folders/': typeof mainFoldersIndexRoute
+  '/(main)/snippets/': typeof mainSnippetsIndexRoute
+  '/(main)/starred/': typeof mainStarredIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/folders/$folderId'
+    | '/snippets/$snippetId'
+    | '/folders'
+    | '/snippets'
+    | '/starred'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/folders/$folderId'
+    | '/snippets/$snippetId'
+    | '/folders'
+    | '/snippets'
+    | '/starred'
+  id:
+    | '__root__'
+    | '/'
+    | '/(main)'
+    | '/(main)/dashboard'
+    | '/(main)/folders/$folderId'
+    | '/(main)/snippets/$snippetId'
+    | '/(main)/folders/'
+    | '/(main)/snippets/'
+    | '/(main)/starred/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
+  mainRouteRoute: typeof mainRouteRouteWithChildren
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
+  mainRouteRoute: mainRouteRouteWithChildren,
 }
 
 export const routeTree = rootRoute
@@ -97,14 +241,46 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/about"
+        "/(main)"
       ]
     },
     "/": {
       "filePath": "index.tsx"
     },
-    "/about": {
-      "filePath": "about.tsx"
+    "/(main)": {
+      "filePath": "(main)/route.tsx",
+      "children": [
+        "/(main)/dashboard",
+        "/(main)/folders/$folderId",
+        "/(main)/snippets/$snippetId",
+        "/(main)/folders/",
+        "/(main)/snippets/",
+        "/(main)/starred/"
+      ]
+    },
+    "/(main)/dashboard": {
+      "filePath": "(main)/dashboard.tsx",
+      "parent": "/(main)"
+    },
+    "/(main)/folders/$folderId": {
+      "filePath": "(main)/folders/$folderId.tsx",
+      "parent": "/(main)"
+    },
+    "/(main)/snippets/$snippetId": {
+      "filePath": "(main)/snippets/$snippetId.tsx",
+      "parent": "/(main)"
+    },
+    "/(main)/folders/": {
+      "filePath": "(main)/folders/index.tsx",
+      "parent": "/(main)"
+    },
+    "/(main)/snippets/": {
+      "filePath": "(main)/snippets/index.tsx",
+      "parent": "/(main)"
+    },
+    "/(main)/starred/": {
+      "filePath": "(main)/starred/index.tsx",
+      "parent": "/(main)"
     }
   }
 }
