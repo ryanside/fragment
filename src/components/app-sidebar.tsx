@@ -38,17 +38,19 @@ import { CreateSnippetForm } from "./create-snippet-form";
 import { CreateFolderForm } from "./create-folder-form";
 import { useNavigate } from "@tanstack/react-router";
 import { trpc } from "@/router";
-import { useQuery } from "@tanstack/react-query";
-
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "./ui/skeleton";
 export function AppSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] = useState(false);
+  const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] =
+    useState(false);
   const location = useLocation();
   const { state } = useSidebar();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const { data: folders = [] } = useQuery(
+  const { data: folders = [], status: foldersStatus } = useQuery(
     trpc.folders.getAll.queryOptions(undefined, {
       staleTime: 1000 * 60 * 5,
       refetchOnWindowFocus: true,
@@ -58,29 +60,39 @@ export function AppSidebar() {
   );
 
   // Convert string dates to Date objects
-  const foldersWithDateObjects = folders.map(folder => ({
+  const foldersWithDateObjects = folders.map((folder) => ({
     ...folder,
     createdAt: new Date(folder.createdAt),
-    updatedAt: new Date(folder.updatedAt)
+    updatedAt: new Date(folder.updatedAt),
   }));
 
   const createSnippetOnSuccess = () => {
     setIsCreateDialogOpen(false);
     navigate({ to: "/snippets" });
-  }
+  };
 
   const createFolderOnSuccess = () => {
     setIsCreateFolderDialogOpen(false);
+    queryClient.invalidateQueries();
     navigate({ to: "/folders" });
-  }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate({ to: "/search", search: { q: searchQuery } });
+    }
+  };
 
   return (
     <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>
-        <SidebarMenuButton className="flex items-center text-white">
-          <Bolt className="" />
-          <span className="text-lg tracking-tight font-light">fragment</span>
-        </SidebarMenuButton>
+        <Link to="/dashboard">
+          <SidebarMenuButton className="flex items-center text-white">
+            <Bolt className="" />
+            <span className="text-lg tracking-tight font-light">fragment</span>
+          </SidebarMenuButton>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup className="py-0">
@@ -108,27 +120,38 @@ export function AppSidebar() {
                     <DialogHeader>
                       <DialogTitle>Create New Snippet</DialogTitle>
                     </DialogHeader>
-                    <CreateSnippetForm onSuccess={createSnippetOnSuccess} folders={foldersWithDateObjects ?? []} />
+                    <CreateSnippetForm
+                      onSuccess={createSnippetOnSuccess}
+                      folders={foldersWithDateObjects ?? []}
+                    />
                   </DialogContent>
                 </Dialog>
               </SidebarMenuItem>
               <SidebarMenuItem className="my-1.5">
                 {state === "collapsed" ? (
-                  <SidebarMenuButton className="w-full justify-center cursor-pointer">
+                  <SidebarMenuButton
+                    className="w-full justify-center cursor-pointer"
+                    onClick={() => navigate({ to: "/search" })}
+                  >
                     <Search className="h-4 w-4" />
                   </SidebarMenuButton>
                 ) : (
-                  <SidebarInput
-                    placeholder="Search snippets..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="border-none"
-                  />
+                  <form onSubmit={handleSearch}>
+                    <SidebarInput
+                      placeholder="Search snippets..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="border-none"
+                    />
+                  </form>
                 )}
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/dashboard"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === "/dashboard"}
+                >
                   <Link to="/dashboard">
                     <Home className="h-4 w-4" />
                     <span>Dashboard</span>
@@ -136,7 +159,10 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/snippets"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === "/snippets"}
+                >
                   <Link to="/snippets">
                     <Code className="h-4 w-4" />
                     <span>All Snippets</span>
@@ -144,7 +170,10 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/starred"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === "/starred"}
+                >
                   <Link to="/starred">
                     <Star className="h-4 w-4" />
                     <span>Starred</span>
@@ -152,7 +181,10 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/tags"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === "/tags"}
+                >
                   <Link to="/dashboard">
                     <Tag className="h-4 w-4" />
                     <span>Tags</span>
@@ -183,33 +215,46 @@ export function AppSidebar() {
                 <DialogHeader>
                   <DialogTitle>Create New Folder</DialogTitle>
                 </DialogHeader>
-                <CreateFolderForm onSuccess={createFolderOnSuccess} folders={foldersWithDateObjects ?? []} />
+                <CreateFolderForm
+                  onSuccess={createFolderOnSuccess}
+                  folders={foldersWithDateObjects ?? []}
+                />
               </DialogContent>
             </Dialog>
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/folders"}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === "/folders"}
+                >
                   <Link to="/folders">
                     <FolderClosed className="h-4 w-4" />
                     <span>All Folders</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {folders?.map((folder) => (
-                <SidebarMenuItem key={folder.id}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === `/folders/${folder.id}`}
-                  >
-                    <Link to="/folders/$folderId" params={{ folderId: folder.id.toString() }}>
-                      <FolderClosed className="h-4 w-4" />
-                      <span>{folder.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {foldersStatus === "pending" ? (
+                <Skeleton className="h-6 w-1/2" ></ Skeleton>
+              ) : (
+                folders?.map((folder) => (
+                  <SidebarMenuItem key={folder.id}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === `/folders/${folder.id}`}
+                    >
+                      <Link
+                        to="/folders/$folderId"
+                        params={{ folderId: folder.id.toString() }}
+                      >
+                        <FolderClosed className="h-4 w-4" />
+                        <span>{folder.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -217,7 +262,10 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={location.pathname === "/settings"}>
+            <SidebarMenuButton
+              asChild
+              isActive={location.pathname === "/settings"}
+            >
               <Link to="/dashboard">
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>

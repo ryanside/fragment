@@ -1,19 +1,25 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { trpc } from '@/router'
-import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardFooter
-} from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { FolderClosed, FolderPlus } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { CreateFolderForm } from '@/components/create-folder-form'
-import { useNavigate } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import { queryClient, trpc } from "@/router";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FolderClosed, FolderPlus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CreateFolderForm } from "@/components/create-folder-form";
+import { useNavigate } from "@tanstack/react-router";
 
 // Define folder type based on schema
 type Folder = {
@@ -24,43 +30,59 @@ type Folder = {
   parentId: number | null;
   createdAt: string;
   updatedAt: string;
-}
+};
 
-export const Route = createFileRoute('/(main)/folders/')({
+export const Route = createFileRoute("/(main)/folders/")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const navigate = useNavigate()
-  
-  const { data: folders = [], status, error } = useQuery(
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const {
+    data: folders = [],
+    status,
+    error,
+  } = useQuery(
     trpc.folders.getAll.queryOptions(undefined, {
       staleTime: 8 * 1000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
     })
-  )
+  );
 
   const handleCardClick = (folder: Folder) => {
-    navigate({ to: '/folders/$folderId', params: { folderId: folder.id.toString() } })
-  }
+    navigate({
+      to: "/folders/$folderId",
+      params: { folderId: folder.id.toString() },
+    });
+  };
 
   const handleCreateSuccess = () => {
-    setIsDialogOpen(false)
-  }
+    setIsDialogOpen(false);
+    queryClient.invalidateQueries();
+    navigate({ to: "/folders" });
+  };
 
   // Convert string dates to Date objects
-  const foldersWithDateObjects = folders.map(folder => ({
+  const foldersWithDateObjects = folders.map((folder) => ({
     ...folder,
     createdAt: new Date(folder.createdAt),
-    updatedAt: new Date(folder.updatedAt)
+    updatedAt: new Date(folder.updatedAt),
   }));
 
-  if (status === 'pending') {
-    return <div className="flex-1 grid place-items-center">Loading...</div>
+  if (status === "pending") {
+    return <div className="flex-1 grid place-items-center">Loading...</div>;
   }
 
-  if (status === 'error') {
-    return <div className="flex-1 grid place-items-center text-destructive">Error: {error?.message}</div>
+  if (status === "error") {
+    return (
+      <div className="flex-1 grid place-items-center text-destructive">
+        Error: {error?.message}
+      </div>
+    );
   }
 
   return (
@@ -78,11 +100,14 @@ function RouteComponent() {
             <DialogHeader>
               <DialogTitle>Create New Folder</DialogTitle>
             </DialogHeader>
-            <CreateFolderForm onSuccess={handleCreateSuccess} folders={foldersWithDateObjects ?? []} />
+            <CreateFolderForm
+              onSuccess={handleCreateSuccess}
+              folders={foldersWithDateObjects ?? []}
+            />
           </DialogContent>
         </Dialog>
       </div>
-    
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {folders.length === 0 ? (
           <div className="col-span-full text-center py-10 text-muted-foreground">
@@ -90,7 +115,7 @@ function RouteComponent() {
           </div>
         ) : (
           folders.map((folder: Folder) => (
-            <Card 
+            <Card
               key={folder.id}
               className="h-full hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => handleCardClick(folder)}
@@ -101,19 +126,23 @@ function RouteComponent() {
                   <CardTitle>{folder.title}</CardTitle>
                 </div>
                 {folder.description && (
-                  <CardDescription>
-                    {folder.description}
-                  </CardDescription>
+                  <CardDescription>{folder.description}</CardDescription>
                 )}
               </CardHeader>
               <CardFooter className="text-sm text-muted-foreground">
                 <div className="flex flex-wrap gap-2 pt-1">
                   <div className="text-xs">
-                    Visibility: <span className="bg-muted/50 px-2 py-1 rounded">{folder.visibility}</span>
+                    Visibility:{" "}
+                    <span className="bg-muted/50 px-2 py-1 rounded">
+                      {folder.visibility}
+                    </span>
                   </div>
                   {folder.parentId && (
                     <div className="text-xs">
-                      Parent: <span className="bg-muted/50 px-2 py-1 rounded">{folder.parentId}</span>
+                      Parent:{" "}
+                      <span className="bg-muted/50 px-2 py-1 rounded">
+                        {folders.find((f) => f.id === folder.parentId)?.title}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -123,5 +152,5 @@ function RouteComponent() {
         )}
       </div>
     </div>
-  )
+  );
 }

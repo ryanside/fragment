@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { Folder, folders, snippets, snippetsInsertSchema } from "./schema";
-import { eq } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import { z } from "zod";
 
 // Define the input type for creating a snippet
@@ -32,6 +32,15 @@ export async function getSnippetsByFolderId(db: ReturnType<typeof drizzle>, fold
 export async function getSnippets(db: ReturnType<typeof drizzle>) {
   try {
     return await db.select().from(snippets);
+  } catch (error) {
+    console.error(error);
+    throw new Error("Failed to fetch snippets from database");
+  }
+}
+
+export async function getSnippetsBySearchQuery(db: ReturnType<typeof drizzle>, searchQuery: string) {
+  try {
+    return await db.select().from(snippets).where(like(snippets.title, `%${searchQuery}%`));
   } catch (error) {
     console.error(error);
     throw new Error("Failed to fetch snippets from database");

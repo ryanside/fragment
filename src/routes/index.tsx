@@ -1,9 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  return <div>Hello index!</div>
+  const navigate = useNavigate();
+
+  navigate({ to: "/dashboard", replace: true });
+
+  return <div></div>
 }
