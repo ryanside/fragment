@@ -48,6 +48,13 @@ function RouteComponent() {
     setIsDialogOpen(false)
   }
 
+  // Convert string dates to Date objects
+  const foldersWithDateObjects = folders.map(folder => ({
+    ...folder,
+    createdAt: new Date(folder.createdAt),
+    updatedAt: new Date(folder.updatedAt)
+  }));
+
   if (status === 'pending') {
     return <div className="flex-1 grid place-items-center">Loading...</div>
   }
@@ -71,7 +78,7 @@ function RouteComponent() {
             <DialogHeader>
               <DialogTitle>Create New Folder</DialogTitle>
             </DialogHeader>
-            <CreateFolderForm onSuccess={handleCreateSuccess} />
+            <CreateFolderForm onSuccess={handleCreateSuccess} folders={foldersWithDateObjects ?? []} />
           </DialogContent>
         </Dialog>
       </div>

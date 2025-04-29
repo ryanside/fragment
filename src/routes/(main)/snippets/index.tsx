@@ -60,15 +60,15 @@ function RouteComponent() {
       // Return a context object with the snapshot
       return { previousSnippets }
     },
-    onError: (err, variables, context) => {
+    onSettled: () => {
+      // Always refetch after error or success to ensure data is in sync
+      queryClient.invalidateQueries({ queryKey: ['snippets'] })
+    },
+    onError: (_err, _variables, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousSnippets) {
         queryClient.setQueryData(['snippets'], context.previousSnippets)
       }
-    },
-    onSettled: () => {
-      // Always refetch after error or success to ensure data is in sync
-      queryClient.invalidateQueries({ queryKey: ['snippets'] })
     },
   })
   
