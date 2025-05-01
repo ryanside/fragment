@@ -71,7 +71,7 @@ export async function getSnippetsBySearchQuery(db: ReturnType<typeof drizzle>, s
 
 export async function saveSnippet(db: ReturnType<typeof drizzle>, snippet: CreateSnippetInput) {
   try {
-    return await db.insert(snippets).values(snippet);
+    return await db.insert(snippets).values(snippet).returning();
   } catch (error) {
     console.error(error);
     throw new Error("Failed to save snippet to database");

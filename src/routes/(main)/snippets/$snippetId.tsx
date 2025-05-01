@@ -30,9 +30,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Clipboard, Check, Pencil } from "lucide-react";
+import { Clipboard, Check, Pencil, Bot } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useChat } from "@ai-sdk/react";
+import Markdown from "react-markdown";
+
 export const Route = createFileRoute("/(main)/snippets/$snippetId")({
   component: RouteComponent,
 });
@@ -56,8 +59,10 @@ const visibilityOptions = [
 ];
 
 function RouteComponent() {
+  const { messages, append } = useChat();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isExplainDialogOpen, setIsExplainDialogOpen] = useState(false);
   const { data: session } = authClient.useSession();
   const snippetId = useParams({
     from: "/(main)/snippets/$snippetId",
@@ -79,20 +84,20 @@ function RouteComponent() {
     trpc.snippets.getById.queryOptions(
       {
         id: Number(snippetId),
-        userId: session?.user.id ?? '',
+        userId: session?.user.id ?? "",
       },
       {
         staleTime: 8 * 1000,
-        enabled: !!session
+        enabled: !!session,
       }
     )
   );
 
   // Always fetch folders if logged in
   const foldersQuery = useQuery(
-    trpc.folders.getAll.queryOptions(session?.user.id ?? '', {
+    trpc.folders.getAll.queryOptions(session?.user.id ?? "", {
       staleTime: 8 * 1000,
-      enabled: !!session
+      enabled: !!session,
     })
   );
 
@@ -141,7 +146,7 @@ function RouteComponent() {
     // Construct the object for mutation, excluding createdAt and updatedAt
     const updatedSnippetPayload = {
       id: snippet.id,
-      userId: session?.user.id ?? '',
+      userId: session?.user.id ?? "",
       title,
       language,
       description,
@@ -188,7 +193,9 @@ function RouteComponent() {
           <Card className="w-full max-w-lg">
             <CardHeader>
               <CardTitle>Error</CardTitle>
-              <CardDescription>{publicSnippetQuery.error.message}</CardDescription>
+              <CardDescription>
+                {publicSnippetQuery.error.message}
+              </CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -201,7 +208,9 @@ function RouteComponent() {
           <Card className="w-full max-w-lg">
             <CardHeader>
               <CardTitle>Not Found</CardTitle>
-              <CardDescription>The requested snippet could not be found</CardDescription>
+              <CardDescription>
+                The requested snippet could not be found
+              </CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -224,12 +233,8 @@ function RouteComponent() {
                 size="icon"
                 className="size-8"
                 onClick={() => {
-                  navigator.clipboard
-                    .writeText(publicSnippet.content)
-                    .then(() => {
-                      setIsCopied(true);
-                      setTimeout(() => setIsCopied(false), 2000);
-                    });
+                  setIsCopied(true);
+                  setTimeout(() => setIsCopied(false), 2000);
                 }}
               >
                 {isCopied ? (
@@ -286,8 +291,50 @@ function RouteComponent() {
                 {new Date(publicSnippet.updatedAt).toLocaleString()}
               </span>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto"
+              onClick={() => {
+                const assistantMessageExists = messages.some(
+                  (m) => m.role === "assistant"
+                );
+                if (!assistantMessageExists) {
+                  append({
+                    role: "user",
+                    content: publicSnippet?.content ?? "",
+                  });
+                }
+                setIsExplainDialogOpen(true);
+              }}
+            >
+              <Bot className="mr-2 size-4" /> Explain with AI
+            </Button>
           </CardFooter>
         </Card>
+        <Dialog
+          open={isExplainDialogOpen}
+          onOpenChange={setIsExplainDialogOpen}
+        >
+          <DialogContent className="sm:max-w-[1000px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Bot className="mr-2 size-5" /> AI Explanation
+              </DialogTitle>
+              <DialogDescription>Using Gemini 2.0 Flash</DialogDescription>
+            </DialogHeader>
+            <div className="prose dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto py-4">
+              {messages
+                .filter((m) => m.role === "assistant")
+                .map((m) => (
+                  <Markdown key={m.id}>{m.content || "Generating..."}</Markdown>
+                ))}
+              {!messages.some((m) => m.role === "assistant") && (
+                <p>Generating explanation...</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -299,6 +346,129 @@ function RouteComponent() {
 
   if (snippetQuery?.status === "error") {
     return <div className="p-6">Error: {snippetQuery.error.message}</div>;
+  }
+
+  if (publicSnippet) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>{publicSnippet.title}</CardTitle>
+                {publicSnippet.description && (
+                  <CardDescription>{publicSnippet.description}</CardDescription>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-8"
+                onClick={() => {
+                  setIsCopied(true);
+                  setTimeout(() => setIsCopied(false), 2000);
+                }}
+              >
+                {isCopied ? (
+                  <Check className="size-4" />
+                ) : (
+                  <Clipboard className="size-4" />
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            <div className="font-mono text-sm p-4 bg-muted/30 rounded-md overflow-auto max-h-[500px] whitespace-pre relative">
+              {publicSnippet.content}
+            </div>
+          </CardContent>
+
+          <CardFooter className="flex flex-wrap gap-2 pt-4">
+            <div className="text-xs font-medium">
+              Language:{" "}
+              <span className="bg-transparent outline outline-muted-foreground/20 px-2 py-1 rounded">
+                {publicSnippet.language}
+              </span>
+            </div>
+            {publicSnippet.folderId && (
+              <div className="text-xs font-medium">
+                Folder ID:{" "}
+                <span className="bg-muted px-2 py-1 rounded">
+                  {publicSnippet.folderId}
+                </span>
+              </div>
+            )}
+            {publicSnippet.tags && publicSnippet.tags.length > 0 && (
+              <div className="text-xs font-medium">
+                Tags:
+                <div className="inline-flex gap-1 ml-1">
+                  {publicSnippet.tags.map((tag, index) => (
+                    <span key={index} className="bg-muted/50 px-2 py-1 rounded">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="text-xs font-medium">
+              Created:{" "}
+              <span className="bg-muted/30 px-2 py-1 rounded">
+                {new Date(publicSnippet.createdAt).toLocaleString()}
+              </span>
+            </div>
+            <div className="text-xs font-medium">
+              Updated:{" "}
+              <span className="bg-muted/30 px-2 py-1 rounded">
+                {new Date(publicSnippet.updatedAt).toLocaleString()}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto"
+              onClick={() => {
+                const assistantMessageExists = messages.some(
+                  (m) => m.role === "assistant"
+                );
+                if (!assistantMessageExists) {
+                  append({
+                    role: "user",
+                    content: publicSnippet?.content ?? "",
+                  });
+                }
+                setIsExplainDialogOpen(true);
+              }}
+            >
+              <Bot className="mr-2 size-4" /> Explain with AI
+            </Button>
+          </CardFooter>
+        </Card>
+        <Dialog
+          open={isExplainDialogOpen}
+          onOpenChange={setIsExplainDialogOpen}
+        >
+          <DialogContent className="sm:max-w-[1000px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Bot className="mr-2 size-5" /> AI Explanation
+              </DialogTitle>
+              <DialogDescription>Using Gemini 2.0 Flash</DialogDescription>
+            </DialogHeader>
+            <div className="prose dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto py-4">
+              {messages
+                .filter((m) => m.role === "assistant")
+                .map((m) => (
+                  <Markdown key={m.id}>{m.content || "Generating..."}</Markdown>
+                ))}
+              {!messages.some((m) => m.role === "assistant") && (
+                <p>Generating explanation...</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
   }
 
   if (!snippet) {
@@ -372,7 +542,7 @@ function RouteComponent() {
             <div className="text-xs font-medium">
               Tags:
               <div className="inline-flex gap-1 ml-1">
-                {snippet.tags.map((tag, index) => (
+                {snippet.tags?.map((tag, index) => (
                   <span key={index} className="bg-muted/50 px-2 py-1 rounded">
                     {tag}
                   </span>
@@ -392,6 +562,22 @@ function RouteComponent() {
               {new Date(snippet.updatedAt).toLocaleString()}
             </span>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto"
+            onClick={() => {
+              const assistantMessageExists = messages.some(
+                (m) => m.role === "assistant"
+              );
+              if (!assistantMessageExists) {
+                append({ role: "user", content: snippet?.content ?? "" });
+              }
+              setIsExplainDialogOpen(true);
+            }}
+          >
+            <Bot className="mr-2 size-4" /> Explain with AI
+          </Button>
         </CardFooter>
       </Card>
 
@@ -512,6 +698,27 @@ function RouteComponent() {
               <Button type="submit">Save Changes</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isExplainDialogOpen} onOpenChange={setIsExplainDialogOpen}>
+        <DialogContent className="sm:max-w-[1000px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Bot className="mr-2 size-5" /> AI Explanation
+            </DialogTitle>
+            <DialogDescription>Using Gemini 2.0 Flash</DialogDescription>
+          </DialogHeader>
+          <div className="prose dark:prose-invert max-w-none max-h-[60vh] overflow-y-auto py-4">
+            {messages
+              .filter((m) => m.role === "assistant")
+              .map((m) => (
+                <Markdown key={m.id}>{m.content || "Generating..."}</Markdown>
+              ))}
+            {!messages.some((m) => m.role === "assistant") && (
+              <p>Generating explanation...</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

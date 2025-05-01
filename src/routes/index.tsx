@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useState } from "react";
-import { Search, LogIn, UserPlus, Bolt } from "lucide-react";
+import { Search, LogIn, UserPlus, Bolt, Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { trpc } from "@/router";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/")({
   component: RouteComponent,
+  beforeLoad: async () => {
+    console.log("Checking session in /(main) beforeLoad...");
+    const { data: session } = await authClient.getSession();
+    if (session) {
+      console.log("Session found, redirecting to /dashboard");
+      throw redirect({ to: "/dashboard" });
+    }
+  },
 });
 
 function RouteComponent() {
@@ -27,7 +37,7 @@ function RouteComponent() {
   const [language, setLanguage] = useState("javascript");
   const [tags, setTags] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [loading, setLoading] = useState(false);
   const languages = [
     { value: "javascript", label: "JavaScript" },
     { value: "typescript", label: "TypeScript" },
@@ -40,25 +50,23 @@ function RouteComponent() {
     { value: "php", label: "PHP" },
   ];
 
-  const createSnippet = useMutation({
-    mutationFn: (data: {
-      title: string;
-      code: string;
-      description: string;
-      language: string;
-      tags?: string[] | null;
-      visibility: string;
-    }) => {
-      return fetch("/api/snippets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }).then((res) => res.json());
-    },
+  const mutationOptions = trpc.snippets.create.mutationOptions({
     onSuccess: (data) => {
-      navigate({ to: `/snippets/${data.id}` });
+      setLoading(false);
+      if (data && data[0] && data[0].id) {
+        navigate({ to: `/snippets/${data[0].id}` });
+      } else {
+        console.error("Failed to get snippet ID after creation", data);
+      }
+    },
+    onMutate: () => {
+      setLoading(true);
+    },
+    onError: (error) => {
+      console.error("Mutation error:", error);
     },
   });
+  const createSnippetMutation = useMutation(mutationOptions);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,9 +79,10 @@ function RouteComponent() {
           .filter((tag) => tag)
       : null;
 
-    createSnippet.mutate({
+    createSnippetMutation.mutate({
       title: title || "untitled",
-      code,
+      userId: null,
+      content: code,
       description,
       language,
       tags: parsedTags,
@@ -213,9 +222,13 @@ function RouteComponent() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={createSnippet.isPending}
+                disabled={loading}
               >
-                {createSnippet.isPending ? "Creating..." : "Create Snippet"}
+                {loading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                "Create Snippet"
+              )}
               </Button>
             </form>
           </div>
@@ -230,8 +243,10 @@ function RouteComponent() {
       </div>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-dashed py-6">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground"></div>
+      <footer className="mt-auto border-t border-dashed">
+        <div className="container mx-auto px-4 h-17 flex justify-between items-center border-x border-dashed">
+         
+        </div>
       </footer>
     </div>
   );

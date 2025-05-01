@@ -35,9 +35,7 @@ export const folderSelectSchema = createSelectSchema(folders);
 
 export const snippets = pgTable("snippets", {
   id: serial("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
   title: text("title").notNull().default("untitled"),
   visibility: text("visibility").notNull().default("private"),
   language: text("language").notNull().default("plaintext"),
@@ -105,35 +103,35 @@ export const verification = pgTable("verification", {
   createdAt: timestamp("created_at"),
   updatedAt: timestamp("updated_at"),
 });
- 
+
 export const roles = pgTable("roles", {
-	userId: varchar("userId", { length: 256 }).primaryKey(),
-	name: varchar("name", { length: 256 }).notNull(),
-	canDelete: boolean("canDelete").notNull(),
+  userId: varchar("userId", { length: 256 }).primaryKey(),
+  name: varchar("name", { length: 256 }).notNull(),
+  canDelete: boolean("canDelete").notNull(),
 });
- 
+
 export const comments = pgTable("comments", {
-	id: serial("id").primaryKey().notNull(),
-	page: varchar("page", { length: 256 }).notNull(),
-	thread: integer("thread"),
-	author: varchar("author", { length: 256 }).notNull(),
-	content: json("content").notNull(),
-	timestamp: timestamp("timestamp", { withTimezone: true })
-		.defaultNow()
-		.notNull(),
+  id: serial("id").primaryKey().notNull(),
+  page: varchar("page", { length: 256 }).notNull(),
+  thread: integer("thread"),
+  author: varchar("author", { length: 256 }).notNull(),
+  content: json("content").notNull(),
+  timestamp: timestamp("timestamp", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
- 
+
 export const rates = pgTable(
-	"rates",
-	{
-		userId: varchar("userId", { length: 256 }).notNull(),
-		commentId: integer("commentId").notNull(),
-		like: boolean("like").notNull(),
-	},
-	(table) => [
-		primaryKey({ columns: [table.userId, table.commentId] }),
-		index("comment_idx").on(table.commentId),
-	],
+  "rates",
+  {
+    userId: varchar("userId", { length: 256 }).notNull(),
+    commentId: integer("commentId").notNull(),
+    like: boolean("like").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.commentId] }),
+    index("comment_idx").on(table.commentId),
+  ]
 );
 
 export const schema = {

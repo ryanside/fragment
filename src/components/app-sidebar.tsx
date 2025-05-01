@@ -265,17 +265,6 @@ export function AppSidebar({ handleSignOut }: { handleSignOut: () => void }) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={location.pathname === "/settings"}
-            >
-              <Link to="/dashboard">
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
             <Button
               variant="ghost"
               size="sm"
@@ -285,6 +274,17 @@ export function AppSidebar({ handleSignOut }: { handleSignOut: () => void }) {
               <LogOut className="h-4 w-4" />
               {state !== "collapsed" && "Sign out"}
             </Button>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={location.pathname === "/settings"}
+            >
+              <Link to="/dashboard">
+                <Settings className="h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
