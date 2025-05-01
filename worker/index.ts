@@ -1,7 +1,7 @@
 import { app } from "./hono/api";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "./trpc/router";
-import { createContext } from "./trpc/context";
+import { createContext, Bindings } from "./trpc/context";
 
 export default {
   fetch(request, env, ctx) {
@@ -18,4 +18,4 @@ export default {
     }
     return app.fetch(request, env, ctx);
   },
-} satisfies ExportedHandler<Env>;
+} satisfies ExportedHandler<Bindings>;
