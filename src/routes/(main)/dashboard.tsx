@@ -1,30 +1,41 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { trpc } from "@/router";
 import { useQuery } from "@tanstack/react-query";
 import { File, Folder } from "lucide-react";
-
+import { authClient } from "@/lib/auth-client";
 export const Route = createFileRoute("/(main)/dashboard")({
   component: RouteComponent,
+  beforeLoad: async () => {
+    console.log("Checking session in /(main) beforeLoad...");
+    const { data: session } = await authClient.getSession();
+    console.log("Session data:", session);
+    if (!session) {
+      console.log("No session found, redirecting to /login");
+      throw redirect({ to: "/login" });
+    }
+    console.log("Session found, allowing access.");
+  },
 });
 
 function RouteComponent() {
+  const { data: session } = authClient.useSession();
   const { data: snippets = [], status: snippetsStatus } = useQuery(
-    trpc.snippets.getAll.queryOptions(undefined, {
+    trpc.snippets.getAll.queryOptions(session?.user.id ?? '', {
       staleTime: 5 * 1000,
     })
   );
 
   const { data: folders = [], status: foldersStatus } = useQuery(
-    trpc.folders.getAll.queryOptions(undefined, {
+    trpc.folders.getAll.queryOptions(session?.user.id ?? '', {
       staleTime: 5 * 1000,
     })
   );
 
   return (
-    <div className="flex flex-1 flex-col gap-8 p-4 pt-0">
+    <div className="flex flex-1 flex-col gap-8 p-6 pt-0">
       {/* Folders Section */}
       <section className="w-full">
-        <h2 className="mb-4 text-xl font-semibold">Folders</h2>
+        <h2 className="mb-4 text-xl pl-1">Folders</h2>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {foldersStatus === "pending" ? (
             Array(3)
@@ -42,10 +53,12 @@ function RouteComponent() {
             </div>
           ) : (
             folders.map((folder) => (
-              <Link key={folder.id} to="/folders/$folderId" params={{ folderId: folder.id.toString() }}>
-                <div
-                  className="flex h-20 items-center gap-3 rounded-lg bg-primary/5 border-l-4 border-primary pl-3 pr-4 shadow-sm hover:bg-primary/10 transition-colors"
-                >
+              <Link
+                key={folder.id}
+                to="/folders/$folderId"
+                params={{ folderId: folder.id.toString() }}
+              >
+                <div className="flex h-20 items-center gap-3 rounded-lg bg-primary/5 border-l-4 border-primary pl-3 pr-4 shadow-sm hover:bg-primary/10 transition-colors">
                   <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/15">
                     <Folder className="h-6 w-6 text-primary" />
                   </div>
@@ -64,7 +77,7 @@ function RouteComponent() {
 
       {/* Snippets Section */}
       <section className="w-full">
-        <h2 className="mb-4 text-xl font-semibold">Snippets</h2>
+        <h2 className="mb-4 text-xl pl-1">Snippets</h2>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {snippetsStatus === "pending" ? (
             Array(3)
@@ -81,16 +94,20 @@ function RouteComponent() {
             </div>
           ) : (
             snippets.slice(0, 6).map((snippet) => (
-              <Link key={snippet.id} to="/snippets/$snippetId" params={{ snippetId: snippet.id.toString() }}>
-                <div
-                  className="flex h-36 flex-col rounded-lg bg-card overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow"
-                >
+              <Link
+                key={snippet.id}
+                to="/snippets/$snippetId"
+                params={{ snippetId: snippet.id.toString() }}
+              >
+                <div className="flex h-36 flex-col rounded-lg bg-card overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow">
                   <div className="bg-secondary/30 h-1.5"></div>
                   <div className="flex-1 flex flex-col justify-between p-4">
                     <div>
                       <div className="flex items-center gap-2">
                         <File className="h-6 w-6 text-muted-foreground" />
-                        <h3 className="font-medium truncate">{snippet.title}</h3>
+                        <h3 className="font-medium truncate">
+                          {snippet.title}
+                        </h3>
                       </div>
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                         {snippet.description || "No description"}
@@ -114,7 +131,7 @@ function RouteComponent() {
 
       {/* Recent Activity Section */}
       <section className="w-full">
-        <h2 className="mb-4 text-xl font-semibold">Recent Activity</h2>
+        <h2 className="mb-4 text-xl pl-1">Recent Activity</h2>
         <div className="rounded-lg border border-border bg-background p-1">
           <div className="divide-y divide-border">
             {snippetsStatus === "pending" ? (
@@ -135,7 +152,11 @@ function RouteComponent() {
               </div>
             ) : (
               snippets.slice(0, 5).map((snippet, index) => (
-                <Link key={snippet.id} to="/snippets/$snippetId" params={{ snippetId: snippet.id.toString() }}>
+                <Link
+                  key={snippet.id}
+                  to="/snippets/$snippetId"
+                  params={{ snippetId: snippet.id.toString() }}
+                >
                   <div className="flex items-start gap-3 rounded-md p-3 hover:bg-muted/30 transition-colors">
                     <div className="relative">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/20">

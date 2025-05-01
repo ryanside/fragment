@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { trpc, queryClient } from '@/router'
 import { useState } from 'react'
@@ -21,9 +21,20 @@ import { Button } from '@/components/ui/button'
 import { Clipboard, Check, ExternalLink, Star } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Snippet } from '@/types/snippet'
+import { authClient } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(main)/starred/')({
   component: RouteComponent,
+  beforeLoad: async () => {
+    console.log("Checking session in /(main) beforeLoad...");
+    const { data: session } = await authClient.getSession();
+    console.log("Session data:", session);
+    if (!session) {
+      console.log("No session found, redirecting to /login");
+      throw redirect({ to: "/login" });
+    }
+    console.log("Session found, allowing access.");
+  },
 })
 
 function RouteComponent() {

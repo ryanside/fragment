@@ -1,4 +1,4 @@
-import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useParams, useNavigate, redirect } from "@tanstack/react-router";
 import { trpc, queryClient } from "@/router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -10,6 +10,7 @@ import {
 import { FolderClosed, FolderOpen, ArrowLeft, Edit, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
+import { authClient } from "@/lib/auth-client";
 
 // Define folder type based on schema
 type Folder = {
@@ -24,6 +25,16 @@ type Folder = {
 
 export const Route = createFileRoute("/(main)/folders/$folderId")({
   component: RouteComponent,
+  beforeLoad: async () => {
+    console.log("Checking session in /(main) beforeLoad...");
+    const { data: session } = await authClient.getSession();
+    console.log("Session data:", session);
+    if (!session) {
+      console.log("No session found, redirecting to /login");
+      throw redirect({ to: "/login" });
+    }
+    console.log("Session found, allowing access.");
+  },
 });
 
 function RouteComponent() {
@@ -138,30 +149,23 @@ function RouteComponent() {
                 createdAt: string;
                 updatedAt: string;
               }) => (
-                <Card
+                <Link
                   key={subFolder.id}
-                  className="hover:shadow-md transition-shadow"
+                  to="/folders/$folderId"
+                  params={{ folderId: subFolder.id.toString() }}
                 >
-                  <Link
-                    to="/folders/$folderId"
-                    params={{ folderId: subFolder.id.toString() }}
-                    className="block h-full"
-                  >
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <FolderClosed className="h-4 w-4 text-muted-foreground" />
-                        <CardTitle className="text-base">
-                          {subFolder.title}
-                        </CardTitle>
+                  <div className="flex h-20 items-center gap-3 rounded-lg bg-primary/5 border-l-4 border-primary pl-3 pr-4 shadow-sm hover:bg-primary/10 transition-colors">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/15">
+                      <FolderClosed className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-lg">{subFolder.title}</h3>
+                      <div className="text-sm text-muted-foreground">
+                        {subFolder.description}
                       </div>
-                      {subFolder.description && (
-                        <CardDescription className="text-sm">
-                          {subFolder.description}
-                        </CardDescription>
-                      )}
-                    </CardHeader>
-                  </Link>
-                </Card>
+                    </div>
+                  </div>
+                </Link>
               )
             )}
           </div>

@@ -1,8 +1,12 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { ExecutionContext } from "hono";
 
-type Bindings = {
+export type Bindings = {
   DATABASE_URL: string;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  BETTER_AUTH_SECRET: string;
+  BETTER_AUTH_URL: string;
   // Add other environment variables here if needed
 };
 

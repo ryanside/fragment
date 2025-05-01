@@ -4,7 +4,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { createRouter } from "./router";
 import "./globals.css";
 import { ThemeProvider } from "./components/theme-provider";
-
+import { Toaster } from "@/components/ui/sonner";
 const router = createRouter();
 
 declare module "@tanstack/react-router" {
@@ -21,6 +21,7 @@ if (!rootElement.innerHTML) {
     <StrictMode>
       <ThemeProvider>
         <RouterProvider router={router} />
+        <Toaster />
       </ThemeProvider>
     </StrictMode>
   );

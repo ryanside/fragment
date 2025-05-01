@@ -6,16 +6,25 @@ import {
   PgColumn,
   boolean,
   serial,
+  varchar,
+  json,
+  primaryKey,
+  index,
 } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema } from "drizzle-zod";
 import { InferSelectModel } from "drizzle-orm";
 
 export const folders = pgTable("folders", {
   id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   title: text("title").notNull().default("untitled"),
   visibility: text("visibility").notNull().default("private"),
   description: text("description"),
-  parentId: integer("parent_id").references((): PgColumn => folders.id, { onDelete: "cascade" }),
+  parentId: integer("parent_id").references((): PgColumn => folders.id, {
+    onDelete: "cascade",
+  }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -26,12 +35,17 @@ export const folderSelectSchema = createSelectSchema(folders);
 
 export const snippets = pgTable("snippets", {
   id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   title: text("title").notNull().default("untitled"),
   visibility: text("visibility").notNull().default("private"),
   language: text("language").notNull().default("plaintext"),
   description: text("description"),
   content: text("content").notNull(),
-  folderId: integer("folder_id").references((): PgColumn => folders.id, { onDelete: "cascade" }),
+  folderId: integer("folder_id").references((): PgColumn => folders.id, {
+    onDelete: "cascade",
+  }),
   tags: text("tags").array(),
   starred: boolean("starred").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -91,3 +105,45 @@ export const verification = pgTable("verification", {
   createdAt: timestamp("created_at"),
   updatedAt: timestamp("updated_at"),
 });
+ 
+export const roles = pgTable("roles", {
+	userId: varchar("userId", { length: 256 }).primaryKey(),
+	name: varchar("name", { length: 256 }).notNull(),
+	canDelete: boolean("canDelete").notNull(),
+});
+ 
+export const comments = pgTable("comments", {
+	id: serial("id").primaryKey().notNull(),
+	page: varchar("page", { length: 256 }).notNull(),
+	thread: integer("thread"),
+	author: varchar("author", { length: 256 }).notNull(),
+	content: json("content").notNull(),
+	timestamp: timestamp("timestamp", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+});
+ 
+export const rates = pgTable(
+	"rates",
+	{
+		userId: varchar("userId", { length: 256 }).notNull(),
+		commentId: integer("commentId").notNull(),
+		like: boolean("like").notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.userId, table.commentId] }),
+		index("comment_idx").on(table.commentId),
+	],
+);
+
+export const schema = {
+  folders,
+  snippets,
+  user,
+  session,
+  account,
+  verification,
+  roles,
+  comments,
+  rates,
+};

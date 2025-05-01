@@ -5,11 +5,12 @@ import {
   Home,
   Settings,
   Star,
-  Tag,
   Search,
   Bolt,
   FolderPlus,
   FilePlus,
+  LogOut,
+  FolderKanban,
 } from "lucide-react";
 import {
   Sidebar,
@@ -40,7 +41,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { trpc } from "@/router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "./ui/skeleton";
-export function AppSidebar() {
+import { authClient } from "@/lib/auth-client";
+
+export function AppSidebar({ handleSignOut }: { handleSignOut: () => void }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] =
@@ -49,9 +52,9 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
+  const { data: session } = authClient.useSession();
   const { data: folders = [], status: foldersStatus } = useQuery(
-    trpc.folders.getAll.queryOptions(undefined, {
+    trpc.folders.getAll.queryOptions(session?.user.id ?? "", {
       staleTime: 1000 * 60 * 5,
       refetchOnWindowFocus: true,
       refetchOnMount: true,
@@ -138,7 +141,7 @@ export function AppSidebar() {
                 ) : (
                   <form onSubmit={handleSearch}>
                     <SidebarInput
-                      placeholder="Search snippets..."
+                      placeholder="Search fragment..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="border-none"
@@ -180,7 +183,7 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
+              {/* <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
                   isActive={location.pathname === "/tags"}
@@ -190,7 +193,7 @@ export function AppSidebar() {
                     <span>Tags</span>
                   </Link>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
+              </SidebarMenuItem> */}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -230,13 +233,13 @@ export function AppSidebar() {
                   isActive={location.pathname === "/folders"}
                 >
                   <Link to="/folders">
-                    <FolderClosed className="h-4 w-4" />
+                    <FolderKanban className="h-4 w-4" />
                     <span>All Folders</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {foldersStatus === "pending" ? (
-                <Skeleton className="h-6 w-1/2" ></ Skeleton>
+                <Skeleton className="h-6 w-1/2"></Skeleton>
               ) : (
                 folders?.map((folder) => (
                   <SidebarMenuItem key={folder.id}>
@@ -271,6 +274,17 @@ export function AppSidebar() {
                 <span>Settings</span>
               </Link>
             </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4" />
+              {state !== "collapsed" && "Sign out"}
+            </Button>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

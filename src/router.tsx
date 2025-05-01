@@ -35,6 +35,7 @@ export function createRouter() {
       return (
         <QueryClientProvider client={queryClient}>
           {children}
+          
         </QueryClientProvider>
       );
     },

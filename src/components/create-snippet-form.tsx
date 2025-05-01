@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation } from "@tanstack/react-query"
 import { trpc } from "@/router"
 import { Folder } from "@worker/db/schema"
-
+import { authClient } from "@/lib/auth-client";
 const languages = [
   { value: "javascript", label: "JavaScript" },
   { value: "typescript", label: "TypeScript" },
@@ -26,6 +26,7 @@ const visibilityOptions = [
 ]
 
 export function CreateSnippetForm({ onSuccess, folders }: { onSuccess: () => void, folders: Folder[] }) {
+  const { data: session } = authClient.useSession();
   const mutationOptions = trpc.snippets.create.mutationOptions({
     onSuccess: () => {
       onSuccess();
@@ -64,6 +65,7 @@ export function CreateSnippetForm({ onSuccess, folders }: { onSuccess: () => voi
 
     const snippetData = {
       title,
+      userId: session?.user.id ?? '',
       visibility,
       language,
       description,

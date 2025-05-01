@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation } from "@tanstack/react-query"
 import { trpc } from "@/router"
 import { Folder } from "@worker/db/schema"
-
+import { authClient } from "@/lib/auth-client";
 // Visibility options
 const visibilityOptions = [
   { value: "private", label: "Private" },
@@ -14,6 +14,7 @@ const visibilityOptions = [
 ]
 
 export function CreateFolderForm({ onSuccess, folders }: { onSuccess: () => void, folders: Folder[] }) {
+  const { data: session } = authClient.useSession();
   const mutationOptions = trpc.folders.create.mutationOptions({
     onSuccess: () => {
       onSuccess();
@@ -40,6 +41,7 @@ export function CreateFolderForm({ onSuccess, folders }: { onSuccess: () => void
     }
 
     const folderData = {
+      userId: session?.user.id ?? '',
       title,
       visibility,
       description,

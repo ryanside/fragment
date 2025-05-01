@@ -31,7 +31,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Clipboard, Check, Pencil } from "lucide-react";
-
+import { authClient } from "@/lib/auth-client";
+import { Skeleton } from "@/components/ui/skeleton";
 export const Route = createFileRoute("/(main)/snippets/$snippetId")({
   component: RouteComponent,
 });
@@ -57,34 +58,55 @@ const visibilityOptions = [
 function RouteComponent() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-
+  const { data: session } = authClient.useSession();
   const snippetId = useParams({
     from: "/(main)/snippets/$snippetId",
     select: (params) => params.snippetId,
   });
 
-  const {
-    data: snippetData,
-    status,
-    error,
-  } = useQuery(
-    trpc.snippets.getById.queryOptions(Number(snippetId), {
+  // Always fetch visibility
+  const { data: visibility } = useQuery(
+    trpc.snippets.getVisibility.queryOptions(Number(snippetId))
+  );
+
+  // Always fetch public snippet data
+  const publicSnippetQuery = useQuery(
+    trpc.snippets.getPublic.queryOptions(Number(snippetId))
+  );
+
+  // Always fetch user's snippet data and folders, but with empty/disabled queries if not logged in
+  const snippetQuery = useQuery(
+    trpc.snippets.getById.queryOptions(
+      {
+        id: Number(snippetId),
+        userId: session?.user.id ?? '',
+      },
+      {
+        staleTime: 8 * 1000,
+        enabled: !!session
+      }
+    )
+  );
+
+  // Always fetch folders if logged in
+  const foldersQuery = useQuery(
+    trpc.folders.getAll.queryOptions(session?.user.id ?? '', {
       staleTime: 8 * 1000,
+      enabled: !!session
     })
   );
 
-  const { data: foldersData } = useQuery(
-    trpc.folders.getAll.queryOptions(undefined, {
-      staleTime: 8 * 1000,
-    })
-  );
+  // For authenticated users viewing their snippets
+  const snippet = snippetQuery.data?.[0];
+  const foldersData = foldersQuery.data;
 
-  // The getById query returns an array, so we need to get the first item
-  const snippet = snippetData ? snippetData[0] : undefined;
+  // For non-authenticated users viewing public snippets
+  const publicSnippet = publicSnippetQuery.data;
 
+  // Update mutation remains the same
   const updateOptions = trpc.snippets.update.mutationOptions({
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["snippets"] });
+      queryClient.invalidateQueries({ queryKey: ["snippetData"] });
       setIsEditDialogOpen(false);
     },
   });
@@ -119,6 +141,7 @@ function RouteComponent() {
     // Construct the object for mutation, excluding createdAt and updatedAt
     const updatedSnippetPayload = {
       id: snippet.id,
+      userId: session?.user.id ?? '',
       title,
       language,
       description,
@@ -133,18 +156,156 @@ function RouteComponent() {
     updateSnippetMutation.mutate(updatedSnippetPayload);
   };
 
-  if (status === "pending") {
+  // Handling for non-authenticated users viewing public snippets
+  if (!session) {
+    if (!visibility) {
+      return <div className="p-6">You do not have access to this snippet</div>;
+    }
+
+    if (publicSnippetQuery.status === "pending") {
+      return (
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle className="w-1/2">
+                <Skeleton className="h-6" />
+              </CardTitle>
+              <CardDescription className="w-3/4">
+                <Skeleton className="h-4" />
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[300px]" />
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    if (publicSnippetQuery.status === "error") {
+      return (
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle>Error</CardTitle>
+              <CardDescription>{publicSnippetQuery.error.message}</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      );
+    }
+
+    if (!publicSnippet) {
+      return (
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle>Not Found</CardTitle>
+              <CardDescription>The requested snippet could not be found</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>{publicSnippet.title}</CardTitle>
+                {publicSnippet.description && (
+                  <CardDescription>{publicSnippet.description}</CardDescription>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-8"
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(publicSnippet.content)
+                    .then(() => {
+                      setIsCopied(true);
+                      setTimeout(() => setIsCopied(false), 2000);
+                    });
+                }}
+              >
+                {isCopied ? (
+                  <Check className="size-4" />
+                ) : (
+                  <Clipboard className="size-4" />
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            <div className="font-mono text-sm p-4 bg-muted/30 rounded-md overflow-auto max-h-[500px] whitespace-pre relative">
+              {publicSnippet.content}
+            </div>
+          </CardContent>
+
+          <CardFooter className="flex flex-wrap gap-2 pt-4">
+            <div className="text-xs font-medium">
+              Language:{" "}
+              <span className="bg-transparent outline outline-muted-foreground/20 px-2 py-1 rounded">
+                {publicSnippet.language}
+              </span>
+            </div>
+            {publicSnippet.folderId && (
+              <div className="text-xs font-medium">
+                Folder ID:{" "}
+                <span className="bg-muted px-2 py-1 rounded">
+                  {publicSnippet.folderId}
+                </span>
+              </div>
+            )}
+            {publicSnippet.tags && publicSnippet.tags.length > 0 && (
+              <div className="text-xs font-medium">
+                Tags:
+                <div className="inline-flex gap-1 ml-1">
+                  {publicSnippet.tags.map((tag, index) => (
+                    <span key={index} className="bg-muted/50 px-2 py-1 rounded">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="text-xs font-medium">
+              Created:{" "}
+              <span className="bg-muted/30 px-2 py-1 rounded">
+                {new Date(publicSnippet.createdAt).toLocaleString()}
+              </span>
+            </div>
+            <div className="text-xs font-medium">
+              Updated:{" "}
+              <span className="bg-muted/30 px-2 py-1 rounded">
+                {new Date(publicSnippet.updatedAt).toLocaleString()}
+              </span>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handling for authenticated users
+  if (snippetQuery?.status === "pending") {
     return <div className="p-6">Loading...</div>;
   }
 
-  if (status === "error") {
-    return <div className="p-6">Error: {error.message}</div>;
+  if (snippetQuery?.status === "error") {
+    return <div className="p-6">Error: {snippetQuery.error.message}</div>;
   }
 
   if (!snippet) {
     return <div className="p-6">Snippet not found</div>;
   }
 
+  // Rest of authenticated user UI remains the same
   return (
     <div className="p-6">
       <Card>
@@ -156,23 +317,11 @@ function RouteComponent() {
                 <CardDescription>{snippet.description}</CardDescription>
               )}
             </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setIsEditDialogOpen(true)}
-            >
-              <Pencil className="size-4" />
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <div className="font-mono text-sm p-4 bg-muted/30 rounded-md overflow-auto max-h-[500px] whitespace-pre relative group">
-            <div className="sticky float-right">
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="icon"
-                className="!size-7"
+                className="size-8"
                 onClick={() => {
                   navigator.clipboard.writeText(snippet.content).then(() => {
                     setIsCopied(true);
@@ -181,12 +330,25 @@ function RouteComponent() {
                 }}
               >
                 {isCopied ? (
-                  <Check className="size-3.5" />
+                  <Check className="size-4" />
                 ) : (
-                  <Clipboard className="size-3.5" />
+                  <Clipboard className="size-4" />
                 )}
               </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-8"
+                onClick={() => setIsEditDialogOpen(true)}
+              >
+                <Pencil className="size-4" />
+              </Button>
             </div>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="font-mono text-sm p-4 bg-muted/30 rounded-md overflow-auto max-h-[500px] whitespace-pre relative">
             {snippet.content}
           </div>
         </CardContent>

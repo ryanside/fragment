@@ -8,8 +8,8 @@ export const foldersRouter = router({
         const folder = await saveFolder(ctx.db, input as Folder);
         return folder;
     }),
-    getAll: publicProcedure.query(async ({ ctx }) => {
-        const folders = await getFolders(ctx.db);
+    getAll: publicProcedure.input(z.string()).query(async ({ ctx, input }) => {
+        const folders = await getFolders(ctx.db, input);
         return folders;
     }),
     getById: publicProcedure.input(z.number()).query(async ({ input, ctx }) => {

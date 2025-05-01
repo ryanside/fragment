@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { Folder, folders, snippets, snippetsInsertSchema } from "./schema";
-import { eq, like } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 import { z } from "zod";
 
 // Define the input type for creating a snippet
@@ -8,12 +8,12 @@ export const createSnippetSchema = snippetsInsertSchema.omit({ id: true });
 export type CreateSnippetInput = z.infer<typeof createSnippetSchema>;
 
 // Define the input type for updating a snippet (id is required, others optional, no createdAt/updatedAt)
-export const updateSnippetSchema = snippetsInsertSchema.partial().required({ id: true }).omit({ createdAt: true, updatedAt: true });
+export const updateSnippetSchema = snippetsInsertSchema.partial().required({ id: true, userId: true }).omit({ createdAt: true, updatedAt: true });
 export type UpdateSnippetInput = z.infer<typeof updateSnippetSchema>;
 
-export async function getSnippetById(db: ReturnType<typeof drizzle>, id: number) {
+export async function getSnippetById(db: ReturnType<typeof drizzle>, id: number, userId: string) {
   try {
-    return await db.select().from(snippets).where(eq(snippets.id, id));
+    return await db.select().from(snippets).where(and(eq(snippets.id, id), eq(snippets.userId, userId)));
   } catch (error) {
     console.error(error);
     throw new Error("Failed to fetch snippet from database");
@@ -29,18 +29,40 @@ export async function getSnippetsByFolderId(db: ReturnType<typeof drizzle>, fold
   }
 }
 
-export async function getSnippets(db: ReturnType<typeof drizzle>) {
+export async function getSnippets(db: ReturnType<typeof drizzle>, userId: string) {
   try {
-    return await db.select().from(snippets);
+    return await db.select().from(snippets).where(eq(snippets.userId, userId));
   } catch (error) {
     console.error(error);
     throw new Error("Failed to fetch snippets from database");
   }
 }
 
+export async function getPublicSnippet(db: ReturnType<typeof drizzle>, id: number) {
+  try {
+    return await db.select().from(snippets).where(and(eq(snippets.id, id), eq(snippets.visibility, "public")));
+  } catch (error) {
+    console.error(error);
+    throw new Error("Failed to fetch public snippet from database");
+  }
+}
+
+export async function getSnippetVisibility(db: ReturnType<typeof drizzle>, id: number) {
+  try {
+    const visibility = await db.select({visibility: snippets.visibility}).from(snippets).where(eq(snippets.id, id));
+    if (visibility[0].visibility === "public") {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    throw new Error("Failed to fetch snippet visibility from database");
+  }
+}
 export async function getSnippetsBySearchQuery(db: ReturnType<typeof drizzle>, searchQuery: string) {
   try {
-    return await db.select().from(snippets).where(like(snippets.title, `%${searchQuery}%`));
+    return await db.select().from(snippets).where(and(like(snippets.title, `%${searchQuery}%`), eq(snippets.visibility, "public")));
   } catch (error) {
     console.error(error);
     throw new Error("Failed to fetch snippets from database");
@@ -49,7 +71,7 @@ export async function getSnippetsBySearchQuery(db: ReturnType<typeof drizzle>, s
 
 export async function saveSnippet(db: ReturnType<typeof drizzle>, snippet: CreateSnippetInput) {
   try {
-    return await db.insert(snippets).values(snippet).returning();
+    return await db.insert(snippets).values(snippet);
   } catch (error) {
     console.error(error);
     throw new Error("Failed to save snippet to database");
@@ -62,7 +84,6 @@ export async function updateSnippet(db: ReturnType<typeof drizzle>, snippet: Upd
     return await db.update(snippets)
       .set({ ...snippet, updatedAt: new Date() })
       .where(eq(snippets.id, snippet.id))
-      .returning();
   } catch (error) {
     console.error(error);
     throw new Error("Failed to update snippet in database");
@@ -89,16 +110,16 @@ export async function getStarredSnippets(db: ReturnType<typeof drizzle>) {
 
 export async function starSnippet(db: ReturnType<typeof drizzle>, id: number, starred: boolean) {
   try {
-    return await db.update(snippets).set({ starred: starred }).where(eq(snippets.id, id)).returning();
+    return await db.update(snippets).set({ starred: starred }).where(eq(snippets.id, id));
   } catch (error) {
     console.error(error);
     throw new Error("Failed to star snippet in database");
   }
 }
 
-export async function getFolders(db: ReturnType<typeof drizzle>) {
+export async function getFolders(db: ReturnType<typeof drizzle>, userId: string) {
   try {
-    return await db.select().from(folders);
+    return await db.select().from(folders).where(eq(folders.userId, userId));
   } catch (error) {
     console.error(error);
     throw new Error("Failed to fetch folders from database");
@@ -125,7 +146,7 @@ export async function getFoldersByParentId(db: ReturnType<typeof drizzle>, paren
 
 export async function saveFolder(db: ReturnType<typeof drizzle>, folder: Folder) {
   try {
-    return await db.insert(folders).values(folder).returning();
+    return await db.insert(folders).values(folder);
   } catch (error) {
     console.error(error);
     throw new Error("Failed to save folder to database");
@@ -134,7 +155,7 @@ export async function saveFolder(db: ReturnType<typeof drizzle>, folder: Folder)
 
 export async function updateFolder(db: ReturnType<typeof drizzle>, folder: Folder) {
   try { 
-    return await db.update(folders).set(folder).where(eq(folders.id, folder.id)).returning();
+    return await db.update(folders).set(folder).where(eq(folders.id, folder.id))
   } catch (error) {
     console.error(error);
     throw new Error("Failed to update folder in database");
